@@ -33,17 +33,17 @@ check_cron()
 
 log()
 {
-	logger -t acme -s -p daemon.info -- "$@"
+	logger -t acme -p daemon.info -- "$@"
 }
 
 err()
 {
-	logger -t acme -s -p daemon.err -- "$@"
+	logger -t acme -p daemon.err -- "$@"
 }
 
 debug()
 {
-	[ "$DEBUG" -eq "1" ] && logger -t acme -s -p daemon.debug -- "$@"
+	[ "$DEBUG" -eq "1" ] && logger -t acme -p daemon.debug -- "$@"
 }
 
 get_listeners() {
