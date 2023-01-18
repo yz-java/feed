@@ -1,13 +1,48 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
+#
+# Copyright (C) 2021-2022 Gerald Kerma <gandalf@gk2.net>
+#
 
-CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-## Gen&ConfigApiKey
-if grep -q "{API_KEY}" "$CONFIG"; then
-	SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
-	API_KEY=`/usr/bin/cscli bouncers add crowdsec-firewall-bouncer-${SUFFIX} -o raw`
-	sed -i "s,^\(\s*api_key\s*:\s*\).*\$,\1$API_KEY," $CONFIG
+CFG_FILE=/etc/crowdsec/config.yaml
+BOUNCER_CFG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+BOUNCER_NAME=crowdsec-firewall-bouncer
+
+if [ -e "${CSCLI}" ]; then
+  ## Gen&ConfigApiKey
+  if grep -q "{API_KEY}" "${BOUNCER_CFG}"; then
+      API_KEY=$("${CSCLI}" -c "${CFG_FILE}" bouncers add "${BOUNCER_NAME}" -o raw)
+      if [ -n "${API_KEY}" ]; then
+          sed -i "s,^\(\s*api_key\s*:\s*\).*\$,\1${API_KEY}," "${BOUNCER_CFG}"
+      else
+        echo "ERROR: NO API key registered…"
+      fi
+  else
+      FW_BOUNCER=$("${CSCLI}" -c "${CFG_FILE}" bouncers list | grep "${BOUNCER_NAME}")
+      if [ -n "${FW_BOUNCER}" ]; then
+          echo "INFO: API key already registered…"
+      else
+          API_KEY=$(sed -rn "s,^api_key\s*:\s*([^\n]+)$,\1,p" "${BOUNCER_CFG}")
+          if [ -n "${API_KEY}" ]; then
+              NEW_API_KEY=$("${CSCLI}" -c "${CFG_FILE}" bouncers add "${BOUNCER_NAME}" -k "${API_KEY}" -o raw)
+              if [ -n "${NEW_API_KEY}" ]; then
+                  if [ "${NEW_API_KEY}" = "${API_KEY}" ]; then
+                      echo "INFO: API key already registered but bouncer re-registered with success…"
+                  else
+                      echo "ERROR: API key already registered but bouncer re-register attempt error!"
+                  fi
+              else
+                  echo "ERROR: API key already registered but bouncer re-registered without success!"
+              fi
+          else
+              echo "ERROR: Unrecoverable API key registration error!"
+          fi
+      fi
+  fi
 else
-	echo API key already registered...
+  echo "WARNING: missing ${CSCLI} command!"
+  echo "You'll have to register your bouncer on the main LAPI server with: cscli bouncers add"
+  echo "Then you must edit the api_key and api_url in the local ${BOUNCER_CFG}"
 fi
 
 # unfortunately, UCI doesn't provide a nice way to add an anonymous section only if it doesn't already exist

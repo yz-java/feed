@@ -6,12 +6,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=crowdsec-firewall-bouncer
-PKG_VERSION:=0.0.21
+PKG_VERSION:=0.0.22
 PKG_RELEASE:=$(AUTORELEASE)
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/crowdsecurity/cs-firewall-bouncer/tar.gz/v$(PKG_VERSION)?
-PKG_HASH:=c92e02085c4c8481009a46ba80374329d102a45933fd0fd2164901954331923e
+PKG_HASH:=c9b6026216b1d7f76b7302c88d7491fe4bf9922cd931f37a052dcb17bcf77992
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
@@ -24,7 +24,7 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/cs-firewall-bouncer-$(PKG_VERSION)
 
 CSFB_BUILD_VERSION?=v$(PKG_VERSION)
 CSFB_BUILD_GOVERSION:=$(shell go version | cut -d " " -f3 | sed -E 's/[go]+//g')
-CSFB_BUILD_TIMESTAMP:=$(shell date +%F"_"%T)
+CSFB_BUILD_TIMESTAMP:=$(SOURCE_DATE_EPOCH)
 CSFB_BUILD_TAG:=openwrt-$(PKG_VERSION)-$(PKG_RELEASE)
 CSFB_VERSION_PKG:=github.com/crowdsecurity/cs-firewall-bouncer/pkg/version
 
@@ -47,16 +47,8 @@ endef
 
 define Package/crowdsec-firewall-bouncer
 $(call Package/crowdsec-firewall-bouncer/Default)
-  DEPENDS:=@(PACKAGE_iptables||PACKAGE_nftables) \
+  DEPENDS:=@((PACKAGE_iptables-legacy&&PACKAGE_ipset)||PACKAGE_iptables-nft) \
 	$(GO_ARCH_DEPENDS)
-endef
-
-define Package/golang-crowdsec-firewall-bouncer-dev
-$(call Package/crowdsec-firewall-bouncer/Default)
-$(call GoPackage/GoSubMenu)
-  TITLE+= (source files)
-  DEPENDS:=$(GO_ARCH_DEPENDS)
-  PKGARCH:=all
 endef
 
 define Package/crowdsec-firewall-bouncer/Default/description
@@ -72,12 +64,6 @@ define Package/crowdsec-firewall-bouncer/description
 $(call Package/crowdsec-firewall-bouncer/Default/description)
 
   This package contains the main program.
-endef
-
-define Package/golang-crowdsec-firewall-bouncer-dev/description
-$(call Package/crowdsec-firewall-bouncer/Default/description)
-
-  This package provides the source files for the program.
 endef
 
 define Package/crowdsec-firewall-bouncer/install
