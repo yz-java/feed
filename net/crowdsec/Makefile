@@ -6,12 +6,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=crowdsec
-PKG_VERSION:=1.3.0
+PKG_VERSION:=1.3.2
 PKG_RELEASE:=$(AUTORELEASE)
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/crowdsecurity/crowdsec/tar.gz/v$(PKG_VERSION)?
-PKG_HASH:=b81419d9a1af500c16a02f052ac6af54253a621ee1575131dfae0f578426d816
+PKG_HASH:=2e237c58d5ea4fe4b76866b98645d339f65f76ce18fddd130b915ec1b59a610d
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
@@ -21,24 +21,22 @@ PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
 PKG_USE_MIPS16:=0
 
-CWD_SYSTEM:=openwrt
+CWD_CONFIGPATH:=/etc/crowdsec
+CWD_DATAPATH:=/srv/crowdsec/data
 
-CWD_BUILD_VERSION?=v$(PKG_VERSION)
-CWD_BUILD_GOVERSION:=$(shell go version | cut -d " " -f3 | sed -E 's/[go]+//g')
-CWD_BUILD_CODENAME:=alphaga
-CWD_BUILD_TIMESTAMP:=$(shell date +%F"_"%T)
-CWD_BUILD_TAG:=openwrt-$(PKG_VERSION)-$(PKG_RELEASE)
-
-CWD_VERSION_PKG:=github.com/crowdsecurity/crowdsec/pkg/cwversion
+CWD_VARS += BUILD_VERSION="v$(PKG_VERSION)"
+CWD_VARS += BUILD_TAG="openwrt-$(PKG_VERSION)-$(PKG_RELEASE)"
+CWD_VARS += BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -E 's/[go]+//g')"
+CWD_VARS += BUILD_CODENAME="alphaga"
+CWD_VARS += BUILD_TIMESTAMP="$(SOURCE_DATE_EPOCH)"
+CWD_VARS += DEFAULT_CONFIGDIR="${CWD_CONFIGPATH}"
+CWD_VARS += DEFAULT_DATADIR="$(CWD_DATAPATH)"
 
 GO_PKG:=github.com/crowdsecurity/crowdsec
 GO_PKG_INSTALL_ALL:=1
-GO_PKG_LDFLAGS_X:=$(CWD_VERSION_PKG).Version=$(CWD_BUILD_VERSION) \
-	$(CWD_VERSION_PKG).System=$(CWD_SYSTEM) \
-	$(CWD_VERSION_PKG).BuildDate=$(CWD_BUILD_TIMESTAMP) \
-	$(CWD_VERSION_PKG).Codename=$(CWD_BUILD_CODENAME)  \
-	$(CWD_VERSION_PKG).Tag=$(CWD_BUILD_TAG) \
-	$(CWD_VERSION_PKG).GoVersion=$(CWD_BUILD_GOVERSION)
+
+CGO_ENABLED = 1
+##GO111MODULE = on
 
 include $(INCLUDE_DIR)/package.mk
 include ../../lang/golang/golang-package.mk
@@ -46,6 +44,7 @@ include ../../lang/golang/golang-package.mk
 define Package/crowdsec/Default
   SECTION:=net
   CATEGORY:=Network
+  PROVIDES:=crowdsec
   TITLE:=Crowdsec detection engine
   URL:=https://crowdsec.net/
 endef
@@ -53,14 +52,18 @@ endef
 define Package/crowdsec
 $(call Package/crowdsec/Default)
   DEPENDS:=$(GO_ARCH_DEPENDS)
+  VARIANT:=agent-full
 endef
 
-define Package/golang-crowdsec-dev
-$(call Package/crowdsec/Default)
-$(call GoPackage/GoSubMenu)
-  TITLE+= (source files)
+define Package/crowdsec-cli
+  SECTION:=net
+  CATEGORY:=Network
+  TITLE:=Crowdsec detection engine (cscli command line only)
+  URL:=https://crowdsec.net/
   DEPENDS:=$(GO_ARCH_DEPENDS)
-  PKGARCH:=all
+  VARIANT:=cli-only
+  DEFAULT_VARIANT:=1
+  CONFLICTS:=crowdsec-agent-full
 endef
 
 define Package/crowdsec/Default/description
@@ -76,75 +79,152 @@ $(call Package/crowdsec/Default/description)
   This package contains the main program.
 endef
 
-define Package/golang-crowdsec-dev/description
+define Package/crowdsec-cli/description
 $(call Package/crowdsec/Default/description)
 
-  This package provides the source files for the program.
+  This package provides only the cscli command line tool.
+endef
+
+define Package/crowdsec/Default/install
+
+	# CONFIG DIRECTORIES
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/bouncers
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/collections
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/hub
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/notifications
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/patterns
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/postoverflows
+		$(INSTALL_DIR) $(1)$(CWD_CONFIGPATH)/scenarios
+
+	# CONFIG FILES
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/config.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/dev.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/user.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/acquis.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/profiles.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/simulation.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/local_api_credentials.yaml \
+			$(1)$(CWD_CONFIGPATH)
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/online_api_credentials.yaml \
+			$(1)$(CWD_CONFIGPATH)
+
+	# CONFIG PATTERNS
+		$(CP) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/patterns/* \
+			$(1)$(CWD_CONFIGPATH)/patterns
+
+	# PLUGINS CONFIG
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/slack/slack.yaml \
+			$(1)$(CWD_CONFIGPATH)/notifications/slack.yaml
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/http/http.yaml \
+			$(1)$(CWD_CONFIGPATH)/notifications/http.yaml
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/splunk/splunk.yaml \
+			$(1)$(CWD_CONFIGPATH)/notifications/splunk.yaml
+		$(INSTALL_DATA) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/email/email.yaml \
+			$(1)$(CWD_CONFIGPATH)/notifications/email.yaml
+
+	# DATA
+		$(INSTALL_DIR) $(1)$(CWD_DATAPATH)
+
 endef
 
 define Package/crowdsec/install
-	$(call GoPackage/Package/Install/Bin,$(1))
 
-	$(INSTALL_DIR) $(1)/etc/crowdsec
-	$(INSTALL_DIR) $(1)/etc/crowdsec/scenarios
-	$(INSTALL_DIR) $(1)/etc/crowdsec/postoverflows
-	$(INSTALL_DIR) $(1)/etc/crowdsec/collections
-	$(INSTALL_DIR) $(1)/etc/crowdsec/patterns
-	$(INSTALL_DIR) $(1)/etc/crowdsec/hub
+	$(call Package/crowdsec/Default/install,$1)
 
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/config.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/dev.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/user.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/acquis.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/profiles.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/simulation.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/local_api_credentials.yaml \
-		$(1)/etc/crowdsec
-	$(INSTALL_DATA) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/online_api_credentials.yaml \
-		$(1)/etc/crowdsec
+	# INIT.D SERVICE
+		$(INSTALL_DIR) $(1)/etc/init.d
+		$(INSTALL_BIN) \
+			./files/crowdsec.initd \
+			$(1)/etc/init.d/$(PKG_NAME)
 
-	$(CP) \
-		$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/config/patterns/* \
-		$(1)/etc/crowdsec/patterns
+	# BINARIES
+		$(INSTALL_DIR) $(1)/usr/bin/
+		$(INSTALL_BIN) $(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/cmd/crowdsec/crowdsec \
+			$(1)/usr/bin/crowdsec
+		$(INSTALL_BIN) $(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/cmd/crowdsec-cli/cscli \
+			$(1)/usr/bin/cscli
 
-	$(INSTALL_DIR) $(1)/srv/crowdsec/data/
+	# PLUGINS BINARIES
+		$(INSTALL_DIR) $(1)/usr/lib/crowdsec/plugins
+		$(INSTALL_BIN) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/slack/notification-slack \
+			$(1)/usr/lib/crowdsec/plugins
+		$(INSTALL_BIN) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/http/notification-http \
+			$(1)/usr/lib/crowdsec/plugins
+		$(INSTALL_BIN) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/splunk/notification-splunk \
+			$(1)/usr/lib/crowdsec/plugins
+		$(INSTALL_BIN) \
+			$(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/plugins/notifications/email/notification-email \
+			$(1)/usr/lib/crowdsec/plugins
 
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) \
-		./files/crowdsec.initd \
-		$(1)/etc/init.d/crowdsec
+	# UCI-CONFIG (POSTUPGRADE/POSTINSTALL)
+		$(INSTALL_DIR) $(1)/etc/config
+		$(INSTALL_CONF) \
+			./files/crowdsec.config \
+			$(1)/etc/config/$(PKG_NAME)
 
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_CONF) \
-		./files/crowdsec.config \
-		$(1)/etc/config/crowdsec
+	# UCI-DEFAULTS (POSTUPGRADE/POSTINSTALL)
+		$(INSTALL_DIR) $(1)/etc/uci-defaults
+		$(INSTALL_BIN) \
+			./files/crowdsec.defaults \
+			$(1)/etc/uci-defaults/99_crowdsec
 
-	$(LN) /usr/bin/crowdsec-cli $(1)/usr/bin/cscli
+	# SCRIPT (TOOLS)
+		$(INSTALL_DIR) $(1)/usr/lib/crowdsec/scripts
+		$(INSTALL_BIN) \
+			./files/crowdsec.script \
+			$(1)/usr/lib/crowdsec/scripts/cs_script.sh
 
-	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) \
-		./files/crowdsec.defaults \
-		$(1)/etc/uci-defaults/99_crowdsec
+endef
+
+define Package/crowdsec-cli/install
+
+	$(call Package/crowdsec/Default/install,$1)
+
+	# BINARIES
+		$(INSTALL_DIR) $(1)/usr/bin/
+		$(INSTALL_BIN) $(GO_PKG_BUILD_DIR)/src/$(GO_PKG)/cmd/crowdsec-cli/cscli \
+			$(1)/usr/bin/cscli
+
 endef
 
 define Package/crowdsec/conffiles
-/etc/crowdsec/
-/etc/config/crowdsec
+$(CWD_CONFIGPATH)
+$(CWD_DATAPATH)
 endef
 
-$(eval $(call GoBinPackage,crowdsec))
+define Package/crowdsec-cli/conffiles
+$(CWD_CONFIGPATH)
+$(CWD_DATAPATH)
+endef
+
+# Reset golang-package.mk overrides so we can use the Makefile
+MAKE_VARS += $(GO_PKG_VARS)
+MAKE_VARS += $(CWD_VARS)
+MAKE_PATH:=$(GO_PKG_WORK_DIR_NAME)/build/src/$(GO_PKG)
+Build/Compile=$(call Build/Compile/Default)
+
 $(eval $(call BuildPackage,crowdsec))
+$(eval $(call BuildPackage,crowdsec-cli))
