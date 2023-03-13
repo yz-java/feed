@@ -41,7 +41,7 @@ define Package/libnetsnmp
 $(call Package/net-snmp/Default)
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+libnl-tiny +libpci +libpcre
+  DEPENDS:=+libnl-tiny +libpci +libpcre +libopenssl
   TITLE:=Open source SNMP implementation (libraries)
 endef
 
@@ -191,7 +191,7 @@ CONFIGURE_ARGS += \
 	--enable-static \
 	--with-endianness=$(if $(CONFIG_BIG_ENDIAN),big,little) \
 	--with-logfile=/var/log/snmpd.log \
-	--with-persistent-directory=/usr/lib/snmp/ \
+	--with-persistent-directory=/usr/lib/net-snmp/ \
 	--with-default-snmp-version=1 \
 	--with-sys-contact=root@localhost \
 	--with-sys-location=Unknown \
@@ -203,7 +203,7 @@ CONFIGURE_ARGS += \
 	--with-mib-modules="$(SNMP_MIB_MODULES_INCLUDED)" \
 	--with-out-transports="$(SNMP_TRANSPORTS_EXCLUDED)" \
 	--with-transports="$(SNMP_TRANSPORTS_INCLUDED)" \
-	--without-openssl \
+	--with-openssl=yes \
 	--without-libwrap \
 	--without-mysql \
 	--without-rpm \
