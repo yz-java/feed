@@ -25,56 +25,42 @@ PKG_MAINTAINER:=Wei Chen <weichen302@gmail.com>
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/package.mk
 
-define Package/xtables-wgobfs
+define Package/xtables-wgobfs/description
+	An iptables extension for WireGuard obfuscation
+endef
+
+XTLIB_DIR:=/usr/lib/iptables
+
+# uses GNU configure
+CONFIGURE_ARGS+= \
+	--with-kbuild="$(LINUX_DIR)" \
+	--with-xtlibdir="$(XTLIB_DIR)"
+
+MAKE_FLAGS = \
+	ARCH="$(LINUX_KARCH)" \
+	CROSS_COMPILE="$(TARGET_CROSS)" \
+	DESTDIR="$(PKG_INSTALL_DIR)" \
+	DEPMOD="/bin/true"
+
+define Build/Install
+	mkdir -p $(PKG_INSTALL_DIR)/$(XTLIB_DIR)
+	$(call Build/Install/Default)
+endef
+
+define Package/iptables-mod-wgobfs
 	SECTION:=net
 	CATEGORY:=Network
 	SUBMENU:=Firewall
 	TITLE:=iptables WireGuard obfuscation extension
 	URL:=https://github.com/infinet/xt_wgobfs
-	MAINTAINER:=Wei Chen <weichen302@gmail.com>
-	DEPENDS:= +iptables +kmod-ipt-core +libxtables
-endef
-
-define Package/xtables-wgobfs/description
-	An iptables extension for WireGuard obfuscation
-endef
-
-# uses GNU configure
-CONFIGURE_ARGS+= \
-	--with-kbuild="$(LINUX_DIR)" \
-	--with-xtlibdir="/usr/lib/iptables" \
-
-define Build/Compile
-	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		DEPMOD="/bin/true" \
-		all
-endef
-
-define Build/Install
-	mkdir -p $(PKG_INSTALL_DIR)/usr/lib/iptables/
-	$(MAKE) -C $(PKG_BUILD_DIR) \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		DEPMOD="/bin/true" \
-		install
-endef
-
-define Package/iptables-mod-wgobfs
-	$(call Package/xtables-wgobfs)
-	CATEGORY:=Network
-	TITLE:=WireGuard obfuscation iptables extension
-	DEPENDS:=+iptables +kmod-ipt-wgobfs
+	DEPENDS:= +iptables +libxtables +kmod-ipt-wgobfs
 endef
 
 define Package/iptables-mod-wgobfs/install
-	$(INSTALL_DIR) $(1)/usr/lib/iptables
+	$(INSTALL_DIR) $(1)/$(XTLIB_DIR)
 	$(CP) \
-		$(PKG_INSTALL_DIR)/usr/lib/iptables/libxt_WGOBFS.so \
-		$(1)/usr/lib/iptables/
+		$(PKG_INSTALL_DIR)/$(XTLIB_DIR)/libxt_WGOBFS.so \
+		$(1)/$(XTLIB_DIR)
 endef
 
 define KernelPackage/ipt-wgobfs
