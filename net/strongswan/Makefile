@@ -273,7 +273,6 @@ $(call Package/strongswan/Default)
 	@(PACKAGE_strongswan-mod-kdf||PACKAGE_strongswan-mod-openssl||PACKAGE_strongswan-mod-wolfssl) \
 	+strongswan-mod-kernel-netlink \
 	+strongswan-mod-md5 \
-	+strongswan-mod-mgf1 \
 	+strongswan-mod-pem \
 	+strongswan-mod-pgp \
 	+strongswan-mod-pkcs1 \
@@ -312,7 +311,6 @@ $(call Package/strongswan/Default)
 	@(PACKAGE_strongswan-mod-kdf||PACKAGE_strongswan-mod-openssl||PACKAGE_strongswan-mod-wolfssl) \
 	+strongswan-mod-kernel-netlink \
 	+strongswan-mod-md5 \
-	+strongswan-mod-mgf1 \
 	+strongswan-mod-pubkey \
 	+strongswan-mod-random \
 	+strongswan-mod-sha1 \
@@ -325,7 +323,7 @@ endef
 define Package/strongswan-isakmp/description
 $(call Package/strongswan/description/Default)
  This meta-package contains only dependencies to establish  ISAKMP /
- IKE PSK connections, dropping other capabilities in favor of small size 
+ IKE PSK connections, dropping other capabilities in favor of small size
  Can fit most routers even with 4Mb flash (after removing IPv6 support).
 endef
 
@@ -340,7 +338,6 @@ $(call Package/strongswan/Default)
 	+strongswan-mod-hmac \
 	@(PACKAGE_strongswan-mod-kdf||PACKAGE_strongswan-mod-openssl||PACKAGE_strongswan-mod-wolfssl) \
 	+strongswan-mod-kernel-netlink \
-	+strongswan-mod-mgf1 \
 	+strongswan-mod-pubkey \
 	+strongswan-mod-random \
 	+strongswan-mod-sha1 \
@@ -466,23 +463,23 @@ define BuildPlugin
 endef
 
 CONFIGURE_ARGS+= \
-	--disable-scripts \
-	--disable-static \
-	--disable-fast \
+	--disable-defaults \
+	--enable-ikev2 \
+	--enable-ikev1 \
+	--enable-load-warning \
 	--enable-nonce \
-	--enable-mgf1 \
 	--enable-mediation \
-	--with-systemdsystemunitdir=no \
-	$(if $(CONFIG_PACKAGE_strongswan-charon-cmd),--enable-cmd,--disable-cmd) \
-	$(if $(CONFIG_PACKAGE_strongswan-pki),--enable-pki,--disable-pki) \
+	$(if $(CONFIG_PACKAGE_strongswan-charon),--enable-charon) \
+	$(if $(CONFIG_PACKAGE_strongswan-charon-cmd),--enable-cmd) \
+	$(if $(CONFIG_PACKAGE_strongswan-pki),--enable-pki) \
+	$(if $(CONFIG_PACKAGE_strongswan-swanctl),--enable-swanctl) \
 	--with-random-device=/dev/random \
 	--with-urandom-device=/dev/urandom \
 	--with-routing-table="$(call qstrip,$(CONFIG_STRONGSWAN_ROUTING_TABLE))" \
 	--with-routing-table-prio="$(call qstrip,$(CONFIG_STRONGSWAN_ROUTING_TABLE_PRIO))" \
 	$(foreach m,$(PKG_MOD_AVAILABLE), \
-	  $(if $(CONFIG_PACKAGE_strongswan-mod-$(m)),--enable-$(m),--disable-$(m)) \
-	) \
-	ac_cv_search___atomic_load=no
+	  $(if $(CONFIG_PACKAGE_strongswan-mod-$(m)),--enable-$(m)) \
+	)
 
 define Package/strongswan/conffiles
 /etc/strongswan.conf
