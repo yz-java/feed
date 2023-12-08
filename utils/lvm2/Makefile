@@ -11,7 +11,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=LVM2
 PKG_VERSION:=2.03.22
 PKG_VERSION_DM:=1.02.196
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME).$(PKG_VERSION).tgz
 PKG_SOURCE_URL:=https://sourceware.org/pub/lvm2
@@ -66,7 +66,7 @@ define Package/lvm2/default
   SUBMENU:=Disc
   TITLE:=The Linux Logical Volume Manager
   URL:=https://sourceware.org/lvm2/
-  DEPENDS:=+libreadline +libncurses +libaio
+  DEPENDS:=+libncurses +libaio
 endef
 
 define Package/lvm2
@@ -93,7 +93,6 @@ $(call Package/lvm2/description)
  This variant supports SELinux
 
 endef
-
 
 CONFIGURE_ARGS += \
 	--disable-o_direct \
