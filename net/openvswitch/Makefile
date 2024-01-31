@@ -17,7 +17,7 @@ include ./openvswitch.mk
 #
 PKG_NAME:=openvswitch
 PKG_VERSION:=$(ovs_version)
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://www.openvswitch.org/releases/
 PKG_HASH:=e03bfab7ca82d81a7d3a36de4f390a3b5210e3f39657671f922877cd4ea6dc73
@@ -249,6 +249,7 @@ CONFIGURE_ARGS+= \
 	--disable-silent-rules \
 
 CONFIGURE_VARS += \
+	ovs_cv_groff=no \
 	$(if $(CONFIG_OPENVSWITCH_WITH_LIBUNBOUND),,ac_cv_lib_unbound_ub_ctx_create=no) \
 	ovs_cv_flake8=no \
 	ovs_cv_groff=no \
