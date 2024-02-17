@@ -122,6 +122,9 @@ get)
 		fi
 	elif [ "$standalone" = 1 ]; then
 		set -- "$@" --standalone --listen-v6
+		if [ "$http_port" ]; then
+    			set -- "$@" --httpport "$http_port"
+		fi
 	else
 		mkdir -p "$CHALLENGE_DIR"
 		set -- "$@" --webroot "$CHALLENGE_DIR"
