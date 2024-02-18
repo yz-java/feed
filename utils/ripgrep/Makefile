@@ -6,7 +6,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ripgrep
 PKG_VERSION:=13.0.0
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/BurntSushi/ripgrep/tar.gz/$(PKG_VERSION)?
@@ -17,6 +17,7 @@ PKG_LICENSE:=MIT Unlicense
 PKG_LICENSE_FILES:=LICENSE-MIT UNLICENSE
 PKG_CPE_ID:=cpe:/a:ripgrep_project:ripgrep
 
+PKG_BUILD_FLAGS:=no-lto
 PKG_BUILD_DEPENDS:=rust/host
 PKG_BUILD_PARALLEL:=1
 
