@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=reschroot
 PKG_VERSION:=1.6.13
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeberg.org/shelter/reschroot/archive/release
@@ -27,6 +27,9 @@ define Package/schroot
   TITLE:=Securely enter a chroot and run a command or login shell.
   DEPENDS:=$(ICONV_DEPENDS) \
 	+boost +boost-filesystem +boost-iostreams +boost-program_options +boost-regex \
+	+!BUSYBOX_CONFIG_REALPATH:coreutils-realpath \
+	+!BUSYBOX_CONFIG_FEATURE_STAT_FORMAT:coreutils-stat \
+	+!BUSYBOX_CONFIG_TAC:coreutils-tac \
 	+SCHROOT_BTRFS:btrfs-progs \
 	+SCHROOT_LOOPBACK:losetup \
 	+SCHROOT_LVM:lvm2 \
