@@ -1,0 +1,87 @@
+From fc279fbcc7a431d9407eea58f82a0af7fa622a40 Mon Sep 17 00:00:00 2001
+From: Nick Peng <pymumu@gmail.com>
+Date: Tue, 12 Mar 2024 23:25:53 +0800
+Subject: [PATCH] dns_conf: check if the IP of bind is valid
+
+---
+ src/dns_conf.c   | 23 +++++++++++++++++++++++
+ src/dns_server.c |  8 +++++---
+ 2 files changed, 28 insertions(+), 3 deletions(-)
+
+--- a/src/dns_conf.c
++++ b/src/dns_conf.c
+@@ -2994,6 +2994,24 @@ errout:
+ 	return -1;
+ }
+ 
++static int _bind_is_ip_valid(const char *ip)
++{
++	struct sockaddr_storage addr;
++	socklen_t addr_len = sizeof(addr);
++	char ip_check[MAX_IP_LEN];
++	int port_check = 0;
++
++	if (parse_ip(ip, ip_check, &port_check) != 0) {
++		return -1;
++	}
++
++	if (getaddr_by_host(ip_check, (struct sockaddr *)&addr, &addr_len) != 0) {
++		return -1;
++	}
++
++	return 0;
++}
++
+ static int _config_bind_ip(int argc, char *argv[], DNS_BIND_TYPE type)
+ {
+ 	int index = dns_conf_bind_ip_num;
+@@ -3040,6 +3058,11 @@ static int _config_bind_ip(int argc, cha
+ 		return 0;
+ 	}
+ 
++	if (_bind_is_ip_valid(ip) != 0) {
++		tlog(TLOG_ERROR, "bind ip address invalid: %s", ip);
++		return -1;
++	}
++
+ 	for (i = 0; i < dns_conf_bind_ip_num; i++) {
+ 		bind_ip = &dns_conf_bind_ip[i];
+ 		if (bind_ip->type != type) {
+--- a/src/dns_server.c
++++ b/src/dns_server.c
+@@ -8683,7 +8683,7 @@ static int _dns_create_socket(const char
+ 	snprintf(port_str, sizeof(port_str), "%d", port);
+ 	gai = _dns_server_getaddr(host, port_str, type, 0);
+ 	if (gai == NULL) {
+-		tlog(TLOG_ERROR, "get address failed.\n");
++		tlog(TLOG_ERROR, "get address failed.");
+ 		goto errout;
+ 	}
+ 
+@@ -8749,6 +8749,8 @@ errout:
+ 	if (gai) {
+ 		freeaddrinfo(gai);
+ 	}
++
++	tlog(TLOG_ERROR, "add server failed, host-ip: %s, type: %d", host_ip, type);
+ 	return -1;
+ }
+ 
+@@ -9240,6 +9242,8 @@ int dns_server_init(void)
+ 	INIT_LIST_HEAD(&server.conn_list);
+ 	time(&server.cache_save_time);
+ 	atomic_set(&server.request_num, 0);
++	pthread_mutex_init(&server.request_list_lock, NULL);
++	INIT_LIST_HEAD(&server.request_list);
+ 
+ 	epollfd = epoll_create1(EPOLL_CLOEXEC);
+ 	if (epollfd < 0) {
+@@ -9253,8 +9257,6 @@ int dns_server_init(void)
+ 		goto errout;
+ 	}
+ 
+-	pthread_mutex_init(&server.request_list_lock, NULL);
+-	INIT_LIST_HEAD(&server.request_list);
+ 	server.epoll_fd = epollfd;
+ 	atomic_set(&server.run, 1);
+ 
