@@ -1,0 +1,73 @@
+From 7124ca145448ec6956fe43849bf0d538957a20e6 Mon Sep 17 00:00:00 2001
+From: Nick Peng <pymumu@gmail.com>
+Date: Wed, 13 Mar 2024 21:43:23 +0800
+Subject: [PATCH] dns_conf: fix bind option out-of-bounds issue
+
+---
+ src/dns_conf.c   | 11 +++++++----
+ src/dns_conf.h   |  2 +-
+ src/dns_server.c |  2 ++
+ 3 files changed, 10 insertions(+), 5 deletions(-)
+
+--- a/src/dns_conf.c
++++ b/src/dns_conf.c
+@@ -2999,9 +2999,12 @@ static int _bind_is_ip_valid(const char
+ 	struct sockaddr_storage addr;
+ 	socklen_t addr_len = sizeof(addr);
+ 	char ip_check[MAX_IP_LEN];
+-	int port_check = 0;
++	int port_check = -1;
+ 
+ 	if (parse_ip(ip, ip_check, &port_check) != 0) {
++		if (port_check != -1 && ip_check[0] == '\0') {
++			return 0;
++		}
+ 		return -1;
+ 	}
+ 
+@@ -3048,12 +3051,12 @@ static int _config_bind_ip(int argc, cha
+ 	};
+ 	/* clang-format on */
+ 	if (argc <= 1) {
+-		tlog(TLOG_ERROR, "invalid parameter.");
++		tlog(TLOG_ERROR, "bind: invalid parameter.");
+ 		goto errout;
+ 	}
+ 
+ 	ip = argv[1];
+-	if (index >= DNS_MAX_SERVERS) {
++	if (index >= DNS_MAX_BIND_IP) {
+ 		tlog(TLOG_WARN, "exceeds max server number, %s", ip);
+ 		return 0;
+ 	}
+@@ -3073,7 +3076,7 @@ static int _config_bind_ip(int argc, cha
+ 			continue;
+ 		}
+ 
+-		tlog(TLOG_WARN, "Bind server %s, type %d, already configured, skip.", ip, type);
++		tlog(TLOG_WARN, "bind server %s, type %d, already configured, skip.", ip, type);
+ 		return 0;
+ 	}
+ 
+--- a/src/dns_conf.h
++++ b/src/dns_conf.h
+@@ -34,7 +34,7 @@
+ extern "C" {
+ #endif
+ 
+-#define DNS_MAX_BIND_IP 16
++#define DNS_MAX_BIND_IP 32
+ #define DNS_MAX_SERVERS 64
+ #define DNS_MAX_SERVER_NAME_LEN 128
+ #define DNS_MAX_PTR_LEN 128
+--- a/src/dns_server.c
++++ b/src/dns_server.c
+@@ -8951,6 +8951,8 @@ static int _dns_server_socket(void)
+ 
+ 	for (i = 0; i < dns_conf_bind_ip_num; i++) {
+ 		struct dns_bind_ip *bind_ip = &dns_conf_bind_ip[i];
++		tlog(TLOG_INFO, "bind ip %s, type %d", bind_ip->ip, bind_ip->type);
++		
+ 		switch (bind_ip->type) {
+ 		case DNS_BIND_TYPE_UDP:
+ 			if (_dns_server_socket_udp(bind_ip) != 0) {
