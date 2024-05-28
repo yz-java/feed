@@ -20,7 +20,6 @@ validate_section_sshd()
 		'Ciphers:list(string)' \
 		'ClientAliveCountMax:uinteger' \
 		'ClientAliveInterval:uinteger' \
-		'enable:bool:1' \
 		'enabled:bool:1' \
 		'GatewayPorts:bool:0' \
 		'HostKeyAlgorithms:list(string)' \
@@ -215,8 +214,7 @@ sshd_instance()
 		return 1
 	}
 
-	# user can use either of enable or enabled
-	[ "${enable}" -eq 0 ] || [ "${enabled}" -eq 0 ] && return 0
+	[ "$enabled" -eq 0 ] && return 0
 
 	[ -n "${Interface}" ] && {
 		network_get_ipaddrs_all IpAddrs "${Interface}" || {
@@ -256,12 +254,10 @@ sshd_instance()
 # for adding trigger
 load_interfaces()
 {
-	config_get Interface "$1" Interface
-	config_get_bool enable "$1" enable 1
 	config_get_bool enabled "$1" enabled 1
-
-	# user can use either of enable or enabled
-	[ "${enable}" = "1" ] && [ "${enabled}" = "1" ] && Interfaces=" ${Interface} ${Interfaces}"
+	[ "$enabled" -eq 0 ] && return 0
+	config_get Interface "$1" Interface
+	Interfaces=" ${Interface} ${Interfaces}"
 }
 
 start_service()

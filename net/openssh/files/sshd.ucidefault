@@ -65,12 +65,12 @@ generate_sshd_section()
 		config_get ForceCommand "$Cfg" ForceCommand
 		config_get_bool GatewayPorts  "$Cfg" GatewayPorts 0
 		config_get IdleTimeout "$Cfg" IdleTimeout 0
+		config_get SSHKeepAlive "$Cfg" SSHKeepAlive 300
 		config_get Interface "$Cfg" Interface
 		config_get MaxAuthTries "$Cfg" MaxAuthTries 6
 		config_get_bool mdns "$Cfg" mdns 1
 		config_get_bool PasswordAuth "$Cfg" PasswordAuth 1
 		config_get Port "$Cfg" Port 22
-		config_get_bool RecvWindowSize "$Cfg" RecvWindowSize 24576
 		config_get_bool RootLogin "$Cfg" RootLogin 1
 		config_get_bool RootPasswordAuth "$Cfg" RootPasswordAuth 1
 		config_get SSHKeepAlive "$Cfg" SSHKeepAlive 300
@@ -85,10 +85,11 @@ generate_sshd_section()
 	set_option_list "$SectionName" "AllowUsers" "$AllowUsers"
 	set_option "$SectionName" "BannerFile" "$BannerFile"
 	set_option_list "$SectionName" "Ciphers" "$Ciphers"
-	set_option "$SectionName" "enable" "$Enable"
+	set_option "$SectionName" "enabled" "$Enable"
 	set_option "$SectionName" "GatewayPorts" "$GatewayPorts"
 	set_option_list "$SectionName" "HostKeyAlgorithms" "$HostKeyAlgorithms"
 	set_option "$SectionName" "IdleTimeout" "$IdleTimeout"
+	set_option "$SectionName" "ClientAliveInterval" "$SSHKeepAlive"
 	set_option "$SectionName" "Interface" "$Interface"
 	set_option_list "$SectionName" "KexAlgorithms" "$KexAlgorithms"
 	set_option_list "$SectionName" "MacAlgorithms" "$MacAlgorithms"
