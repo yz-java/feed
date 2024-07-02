@@ -232,10 +232,14 @@ define Package/openssh-server/install
 	sed -r -i 's,^#(HostKey /etc/ssh/ssh_host_(rsa|ed25519)_key)$$$$,\1,' $(1)/etc/ssh/sshd_config
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/sshd.init $(1)/etc/init.d/sshd
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_BIN) ./files/sshd.config $(1)/etc/config/sshd
 	$(INSTALL_DIR) $(1)/lib/preinit
 	$(INSTALL_BIN) ./files/sshd.failsafe $(1)/lib/preinit/99_10_failsafe_sshd
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/sshd $(1)/usr/sbin/
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_DATA) ./files/sshd.ucidefault $(1)/etc/uci-defaults/99-generate-sshd-config
 endef
 
 define Package/openssh-server-pam/install
