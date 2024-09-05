@@ -262,7 +262,6 @@ define Py3Package/python3-light/filespec
 -|/usr/lib/python$(PYTHON3_VERSION)/idlelib
 -|/usr/lib/python$(PYTHON3_VERSION)/tkinter
 -|/usr/lib/python$(PYTHON3_VERSION)/turtledemo
--|/usr/lib/python$(PYTHON3_VERSION)/webbrowser.py
 -|/usr/lib/python$(PYTHON3_VERSION)/_osx_support.py
 $(foreach lib_file,$(filter /usr/lib/python$(PYTHON3_VERSION)/%,$(PYTHON3_LIB_FILES_DEL)),
   -|$(lib_file)
